@@ -1,0 +1,181 @@
+#include "iostream"
+#include <stdio.h>
+#include <fstream>
+#include <ctime>
+#include <cmath>
+using namespace std;
+
+int main()
+{
+	ofstream fileM2("M2.dat");
+	ofstream fileN2("N2.dat");
+	ofstream fileEta2("Eta2.dat");
+	ofstream fileM1("M0.dat");
+	ofstream fileN1("N0.dat");
+	ofstream fileEta1("Eta1.dat");
+	ofstream fileH("H.dat");
+	int L = 100;
+	double dx = 1, dy = 1;
+	int Nx = L / dx;
+	int Ny = L / dy;
+	cout << Nx << ": " << Ny << "\n";
+	double dt = 0.0005;
+	int Nt = 5900;
+	double T = dt*Nt;
+	double cx = dt / dx; 
+	double cy = dt / dy;
+	double g = 9.8;
+
+	int i, j,k,  timer = 0; // number of point in x
+	double h = 1.0;
+	cout << "cx: "<<cx<<"  cy: "<<cy<<": g/2 :"<<g/2<<"\n";
+	cout << "  h= " << h  << " T= " << T;
+
+	double **Eta2 = new double *[Nx + 1];
+	double **Eta1 = new double *[Nx + 1];
+	double **M2 = new double *[Nx + 1];
+	double **M1 = new double *[Nx + 1];
+	double **N2 = new double *[Nx + 1];
+	double **N1 = new double *[Nx + 1];
+	double **H = new double *[Nx + 1];
+
+	for (i = 0;i < Nx + 1;i++)
+	{
+		Eta2[i] = new double[Ny+1];
+		Eta1[i] = new double[Ny + 1];
+		M2[i] = new double[Ny + 1];
+		M1[i] = new double[Ny + 1];
+		N2[i] = new double[Ny + 1];
+		N1[i] = new double[Ny + 1];
+		H[i] = new double[Ny + 1];
+	}
+
+	clock_t start, end;
+
+	start = clock();
+
+	for (i = 0; i < Nx + 1; i++)
+	{
+		for (j = 0; j < Ny + 1; j++)
+		{
+			H[i][j] = 50.0 - 45 * tanh((i * h - 50) / 20);
+			Eta1[i][j] = 0.5 * exp(-((i * h - 30.0) *(i * h - 30.0) / 10.0) - ((j * h - 50.0) *(j * h - 50.0) / 20.0));
+			M1[i][j] = 50.0 * Eta1[i][j];
+			N1[i][j] = 0;
+
+			fileM1 << M1[i][j] << " ";
+			fileN1 << N1[i][j] << " ";
+			fileEta1 << Eta1[i][j] << " ";
+			fileH << -H[i][j] << " ";
+		}
+		fileM1 << "\n";
+		fileN1 << "\n";
+		fileEta1 << "\n";
+		fileH << "\n";
+
+	}
+
+
+
+ for (k = 1; k <= Nt+1; k++)
+	{
+	 cout << k << "\n";
+		
+		for (i = 1;i < Nx ;i++)
+		{
+			for (j = 1;j < Ny; j++)
+			{
+
+				
+				M2[i][j] = M1[i][j] - (0.5)*cx*((M1[i+1][j])*(M1[i + 1][j]) / (Eta1[i+1][j] + H[i+1][j])
+					- (M1[i-1][j])*(M1[i - 1][j]) / (Eta1[i-1][j] + H[i-1][j]) + (g / 2)*((Eta1[i+1][j])*(Eta1[i + 1][j]) - (Eta1[i-1][j])*(Eta1[i - 1][j])))
+					- (0.5)*cy*((M1[i][j+1]*N1[i][j+1] / (Eta1[i][j+1] + H[i][j+1])) 
+						- (M1[i][j-1]*N1[i][j-1] / (Eta1[i][j-1] + H[i][j-1]))) 
+					- (0.5)*cx*g*H[i][j]*(Eta1[i+1][j] - Eta1[i-1][j]);
+				//cout << M2[i][j] << "\n";
+
+			N2[i][j] = N1[i][j] - (0.5)*cy*((N1[i][j+1])*(N1[i][j + 1]) / (Eta1[i][j+1] + H[i][j+1])
+					- (N1[i][j-1])*(N1[i][j - 1]) / (Eta1[i][j-1] + H[i][j-1]) + (g / 2)*((Eta1[i][j+1])*(Eta1[i][j + 1]) - (Eta1[i][j-1])*(Eta1[i][j - 1])))
+					- (0.5)*cx*((M1[i+1][j]*N1[i+1][j] / (Eta1[i+1][j] + H[i+1][j])) 
+						- (M1[i-1][j]*N1[i-1][j] / (Eta1[i-1][j] + H[i-1][j]))) 
+					- (0.5)*cy*g*H[i][j]*(Eta1[i][j+1] - Eta1[i][j-1]);
+					
+					
+			Eta2[i][j] = Eta1[i][j] - (0.25)*cx*(M2[i + 1][j] - M2[i - 1][j] + M1[i + 1][j] - M1[i - 1][j]) - (0.25)*cy*((N2[i][j + 1] - N2[i][j - 1]) + (N1[i][j + 1] - N1[i][j - 1]));
+
+			
+			/*	Eta2[i][j] = Eta1[i][j] - (1.0 / 4)*cx*((M2[i+1][j] - M2[i-1][j]) + (M1[i+1][j] - M1[i-1][j]))
+					- (1.0 / 4)*cy*((N2[i][j+1] - N2[i][j-1]) + (N1[i][j+1] - N1[i][j-1]));*/
+			}
+		}
+
+		for (i = 0;i < Nx+1; i++)
+		{
+			M2[0][i] = 0;
+			M2[Nx][i] = 0;
+			M2[i][0] = 0; 
+		    M2[i][Ny] = 0;
+
+			N2[0][i] = 0;
+			N2[Nx][i] = 0;
+			N2[i][0] = 0;
+			N2[i][Ny] = 0;
+
+			Eta2[0][i] = Eta2[1][i]; 
+			Eta2[Nx][i] = Eta2[Nx-1][i];
+			Eta2[i][0] = Eta2[i][1];
+			Eta2[i][Nx] = Eta2[i][Nx-1];
+
+		}
+
+
+		for (i = 0;i < Nx+1; i++)
+		{
+			for (j = 0;j < Ny+1; j++)
+			{
+				Eta1[i][j] = Eta2[i][j];
+				M1[i][j] = M2[i][j];
+				N1[i][j] = N2[i][j];
+			}
+		}
+
+
+	} //end time iteration
+
+	end = clock();
+	float time = float(end - start) / CLOCKS_PER_SEC;
+
+
+
+	for (i = 0;i < Nx + 1; i++)
+	{
+		for (j = 0;j < Ny + 1; j++)
+		{
+			fileEta2 << Eta2[i][j] << " ";
+			fileN2 << N2[i][j] << " ";
+			fileM2 << M2[i][j] << " ";
+
+		}
+		fileN2 << "\n";
+		fileM2 << "\n";
+		fileEta2 << "\n";
+	}
+
+	for (i = 0;i < Nx+1; i++)
+	{
+		delete Eta2[i];
+		delete Eta1[i];
+		delete M1[i];
+		delete N1[i];
+		delete N2[i];
+		delete M2[i];
+		delete H[i];
+	}
+
+	delete  Eta1, Eta2, M1, M2, N1, N2, H;
+	cout << "\ncalculation time: " << time << endl;
+	system("pause");
+	return 0;
+
+}
+
